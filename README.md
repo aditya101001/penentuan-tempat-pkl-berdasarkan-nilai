@@ -26,20 +26,25 @@ Hasil: `dataset_siswa.xlsx` (sheet Siswa) + `dataset_dudi.xlsx` (sheet DUDI).
 
 ## Cara Run (pipeline 12 langkah)
 ```bash
-python main.py                                  # default topsis berbobot (usulan, paling defensible)
-python main.py --matching euclidean             # baseline untuk perbandingan BAB 4
-python main.py --matching topsis --eps 2.5
+python main.py                                  # default euclidean (resmi BAB 4)
 # atau dengan path custom:
-python main.py --siswa dataset_siswa.xlsx --dudi dataset_dudi.xlsx --eps 2.5 --min-samples 5 --matching topsis
+python main.py --siswa dataset_siswa.xlsx --dudi dataset_dudi.xlsx --eps 2.5 --min-samples 5
 ```
-Output di `output/` (mode topsis):
-- `hasil_klasterisasi.xlsx` — siswa + Cluster + Kategori + Rekomendasi DUDI + Skor_TOPSIS + Ranking_Top3
-- `profil_cluster.xlsx` — mean per cluster + Rekomendasi + Skor_TOPSIS + Ranking_Top3 + Gap_Terbesar
+Output di `output/`:
+- `hasil_klasterisasi.xlsx` — siswa + Cluster + Kategori + Rekomendasi DUDI + Jarak_DUDI
+- `profil_cluster.xlsx` — mean per cluster + Rekomendasi DUDI + Jarak_DUDI
 - `laporan_noise.xlsx` — daftar noise (label -1)
 - `k_distance_graph.png` — kurva k-distance + garis eps rekomendasi
 - `hasil_cluster_plot.png` — scatter PCA per cluster
 
-Log menampilkan silhouette, % kesesuaian guru, rekomendasi eps, dan ranking TOPSIS (skor 0-1).
+Log menampilkan silhouette, % kesesuaian guru, dan rekomendasi eps.
+
+### Eksperimen Lanjutan (Opsional — Butuh Persetujuan Pembimbing)
+```bash
+python main.py --matching topsis                # eksperimen — cetak warning, jangan pakai resmi tanpa pairwise matrix + CR<0.1
+python main.py --matching topsis --eps 2.5
+```
+Output eksperimen tambah kolom `Skor_TOPSIS` + `Ranking_Top3` + `Gap_Terbesar`. Lihat `prd.md` Lampiran C.
 
 ## Cara Ubah Parameter
 Edit `config.py` (satu-satunya sumber):

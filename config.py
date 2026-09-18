@@ -49,15 +49,15 @@ RENTANG_NILAI = (0, 100)  # untuk 6 kolom nilai
 RENTANG_MINAT = (1, 5)
 RENTANG_SIKAP = (1, 4)
 
-# Bobot DUDI untuk TOPSIS (AHP) — jumlah harus 1.0
-# Diisi dari wawancara Hubin (matriks AHP, CR<0.1). Default: Network & Programming lebih penting.
-# Untuk equal weight (fallback Euclidean-like): semua 0.2
+# EKSPERIMEN — jangan aktifkan tanpa pairwise comparison matrix asli dari Waka Hubin + CR < 0.1
+# DUDI_WEIGHTS = {"Networking": 0.25, "Support": 0.20, "Server_Cloud": 0.15, "Programming": 0.25, "Cybersecurity": 0.15}
+# Default matching adalah Euclidean (tanpa bobot) — TOPSIS hanya opsional eksperimen (lihat prd.md Lampiran C)
 DUDI_WEIGHTS = {
-    "Networking": 0.25,
+    "Networking": 0.20,
     "Support": 0.20,
-    "Server_Cloud": 0.15,
-    "Programming": 0.25,
-    "Cybersecurity": 0.15,
+    "Server_Cloud": 0.20,
+    "Programming": 0.20,
+    "Cybersecurity": 0.20,
 }
 
 # Output filenames

@@ -23,7 +23,7 @@ from src.export import export_results
 
 def main(siswa: str = config.INPUT_SISWA, dudi: str = config.INPUT_DUDI,
          eps: float | None = None, min_samples: int | None = None,
-         matching: str = "topsis"):
+         matching: str = "euclidean"):
     eps = eps if eps is not None else config.EPS
     min_samples = min_samples if min_samples is not None else config.MIN_SAMPLES
 
@@ -92,6 +92,7 @@ def main(siswa: str = config.INPUT_SISWA, dudi: str = config.INPUT_DUDI,
     mode = matching.lower()
     print(f"\n[9] Matching ke DUDI ({mode})...")
     if mode == "topsis":
+        print("  WARNING: Mode TOPSIS eksperimen — belum divalidasi dengan pairwise matrix asli. Jangan gunakan sebagai hasil resmi BAB 4 tanpa persetujuan pembimbing.")
         dudi_match = topsis_rank(profil, df_dudi)
         for cl, info in dudi_match.items():
             print(f"  Cluster {cl} → {info['Nama_DUDI']} (skor {info['Skor']}, jarak {info['Jarak']}) rank2={info['ranking'][1] if len(info['ranking'])>1 else '-'} gap={info['gap_terbesar']}")
@@ -134,6 +135,6 @@ if __name__ == "__main__":
     ap.add_argument("--dudi", default=config.INPUT_DUDI)
     ap.add_argument("--eps", type=float, default=None)
     ap.add_argument("--min-samples", type=int, default=None, dest="min_samples")
-    ap.add_argument("--matching", choices=["euclidean", "topsis"], default="topsis", help="Metode matching DUDI")
+    ap.add_argument("--matching", choices=["euclidean", "topsis"], default="euclidean", help="Metode matching DUDI (default euclidean; topsis eksperimen)")
     args = ap.parse_args()
     raise SystemExit(main(siswa=args.siswa, dudi=args.dudi, eps=args.eps, min_samples=args.min_samples, matching=args.matching))

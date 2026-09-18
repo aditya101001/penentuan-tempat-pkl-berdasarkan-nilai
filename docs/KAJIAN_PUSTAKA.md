@@ -1,6 +1,7 @@
 # Kajian Pustaka — Penelitian Terdahulu DBSCAN & TOPSIS/AHP untuk Penempatan PKL
 
 > Untuk BAB 2 skripsi. Semua sumber sudah terverifikasi via web search 2026-09-18. Format sitasi APA 7th.
+> **Label:** DBSCAN+Euclidean = Metode Utama (BAB 3). **TOPSIS/AHP = Future Work / Eksperimen Opsional** — hanya dibahas sebagai opsi masa depan, bukan metode utama yang diklaim sudah diterapkan (lihat `prd.md` Lampiran C).
 
 ## Ringkasan Temuan
 

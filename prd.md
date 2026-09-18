@@ -3,37 +3,37 @@
 
 > Turunan langsung dari `requirement_skripsi_dbscan.md` — dokumen ini menjadi acuan build, test, dan kelengkapan dokumentasi agar sistem dapat berjalan reproduksibel untuk BAB 4 skripsi.
 
-## KEPUTUSAN FINAL (Baca Ini Saja — Tidak Membingungkan)
+## KEPUTUSAN FINAL
 
-| Aspek | Keputusan | Alasan Singkat |
-|-------|-----------|----------------|
-| **Klasterisasi** | **Tetap DBSCAN** (`eps=2.5, min_samples=5`) | Sesuai judul, tidak perlu ubah rumusan masalah |
-| **Matching DUDI** | **TOPSIS berbobot AHP** (`src/matching_topsis.py`, default) — **Euclidean hanya baseline pembanding** | Satu-satunya perubahan (1 file + 5 baris config), naikkan akurasi 10-15%, mudah jelaskan di sidang (Hwang & Yoon 1981, Saaty 1980) |
-| **Cara buktikan** | Bandingkan `euclidean` vs `topsis` di tabel yang sama (accuracy/kappa) | Penguji lihat before-after, CR<0.1 lampiran |
+| Aspek | Keputusan Baru | Alasan |
+|-------|-----------------|--------|
+| Klasterisasi | Tetap DBSCAN (`eps=2.5, min_samples=5`) | Tidak berubah |
+| Matching DUDI (default) | **Euclidean** — sesuai judul, tidak perlu revisi rumusan masalah | Konsistensi judul, aman di sidang |
+| Matching DUDI (opsional) | TOPSIS+AHP — **hanya diaktifkan** jika: (1) dosen pembimbing setuju revisi rumusan masalah/judul, (2) ada pairwise comparison matrix asli dari Waka Hubin + CR < 0.1 terlampir, (3) tidak diklaim sebagai fakta sebelum diuji ke data asli | Hindari klaim tak berdasar, hindari kerja tambahan tanpa persetujuan |
+| Klaim akurasi | Hapus "naikkan akurasi 10-15%" — ganti jadi hipotesis: "TOPSIS berpotensi meningkatkan akurasi dibanding Euclidean — perlu diuji dengan data asli, belum ada bukti empiris" | Klaim harus berbasis bukti, bukan asumsi |
 
 **Perintah final:**
 ```bash
-python main.py --matching topsis     # resmi
-python main.py --matching euclidean  # hanya untuk pembanding BAB 4
+python main.py                          # default euclidean (resmi BAB 4)
+python main.py --matching topsis        # eksperimen — cetak warning, jangan pakai resmi tanpa persetujuan
 ```
-Jika ragu, pakai `topsis` — fallback equal weight (0.2) = Euclidean, tidak pernah lebih buruk.
 
 | Field | Isi |
 |-------|-----|
 | **Judul** | Penerapan Algoritma DBSCAN untuk Klasterisasi Profil Kompetensi dan Minat Siswa Kelas XI sebagai Dasar Rekomendasi Kesesuaian Penempatan PKL Berbasis Kebutuhan DUDI (Studi Kasus SMK IT Bina Adzkia) |
-| **Versi** | 1.1 — 2026-09-18 (TOPSIS terintegrasi) |
-| **Status** | Implemented — baseline Euclidean + usulan TOPSIS |
+| **Versi** | 1.2 — 2026-09-18 (Euclidean default, TOPSIS eksperimen) |
+| **Status** | Implemented — Euclidean default resmi; TOPSIS eksperimen non-default (lihat Lampiran C) |
 | **Stack** | Python 3.10+ · pandas · numpy · scikit-learn · scipy · matplotlib · seaborn · openpyxl |
 | **Input** | `dataset_siswa.xlsx` + `dataset_dudi.xlsx` |
-| **Output** | 3 Excel + 2 PNG (lihat §8) — mode `euclidean` (baseline) & `topsis` (usulan) |
+| **Output** | 3 Excel + 2 PNG (lihat §8) — default Euclidean; mode `topsis` hanya eksperimen |
 
 ---
 
 ## 1. Ringkasan
 
-Sistem mengelompokkan siswa kelas XI TJKT berdasarkan **10 variabel inti** (6 nilai akademik + 4 minat) dengan DBSCAN, memprofilkan tiap cluster, mencocokkan ke kebutuhan DUDI via **dua mode matching**: `euclidean` (baseline, jarak lurus tanpa bobot) dan `topsis` berbobot AHP (usulan, skor 0-1 + ranking Top-3 + gap — paling mudah dipertanggungjawabkan, lihat `docs/REKOMENDASI_JUSTIFIKASI.md`), lalu memvalidasi secara kuantitatif (Silhouette) dan kualitatif (Penilaian_Guru). Output bersifat **rekomendasi awal untuk Waka Hubin**, bukan keputusan final.
+Sistem mengelompokkan siswa kelas XI TJKT berdasarkan **10 variabel inti** (6 nilai akademik + 4 minat) dengan DBSCAN, memprofilkan tiap cluster, mencocokkan ke kebutuhan DUDI via **Euclidean (default, jarak lurus tanpa bobot)**. Mode **TOPSIS+AHP tersedia sebagai opsi eksperimen** (skor 0-1 + ranking Top-3 + gap) — **memerlukan syarat tambahan sebelum dipakai resmi (lihat Lampiran C)** — lalu memvalidasi secara kuantitatif (Silhouette) dan kualitatif (Penilaian_Guru). Output bersifat **rekomendasi awal untuk Waka Hubin**, bukan keputusan final.
 
-Prinsip: **modular, reproduksibel, non-interaktif** (CLI/Excel saja, tanpa web app/DB/deployment). DBSCAN tetap inti (sesuai judul) — TOPSIS hanya di lapis matching, sehingga tidak ubah rumusan masalah.
+Prinsip: **modular, reproduksibel, non-interaktif** (CLI/Excel saja, tanpa web app/DB/deployment). DBSCAN tetap inti (sesuai judul).
 
 ---
 
@@ -197,7 +197,7 @@ DUDI_WEIGHTS = {"Networking":0.25,"Support":0.20,"Server_Cloud":0.15,"Programmin
 | 6 | Validasi kuantitatif | `silhouette_score_wrap()` | exclude `label==-1`; jika n_cluster<2 → return `None` + warning |
 | 7 | Profilisasi | `profile_clusters(df, labels)` | groupby cluster → mean per variabel; tampilkan tabel (console + Excel) |
 | 8 | Noise | `detect_noise(df, labels)` | filter `label==-1`; jangan hapus, laporkan terpisah |
-| 9 | Matching DUDI | `match_to_dudi()` (euclidean baseline) **atau** `topsis_rank()` (usulan, default) | normalisasi profil: `(x/100)*4+1` → 1–5; Euclidean: jarak lurus; **TOPSIS**: normalisasi vektor → berbobot AHP → jarak ke ideal +/- → skor 0-1 + ranking Top-3 + gap (lihat `docs/REKOMENDASI_JUSTIFIKASI.md` §3) |
+| 9 | Matching DUDI | `match_to_dudi()` **(default Euclidean, resmi)** — `topsis_rank()` **hanya eksperimen** (lihat Lampiran C) | normalisasi profil: `(x/100)*4+1` → 1–5; Euclidean: jarak lurus; TOPSIS eksperimen: normalisasi vektor → berbobot AHP → jarak ke ideal +/- → skor 0-1 + ranking Top-3 + gap |
 | 10 | Validasi kualitatif | `qualitative_validation()` | mapping cluster→kategori (argmax profil), bandingkan ke `Penilaian_Guru`; hitung accuracy (%) + `cohen_kappa_score` (skip jika kolom kosong) |
 | 11 | Visualisasi | `plot_clusters()` | scatter 2D: pakai 2 fitur representatif atau PCA(n_components=2); warna per cluster, `x` untuk noise |
 | 12 | Export | `export_results()` | 3 Excel + 2 PNG ke `output/`; buat folder jika belum ada |
@@ -208,8 +208,8 @@ DUDI_WEIGHTS = {"Networking":0.25,"Support":0.20,"Server_Cloud":0.15,"Programmin
 
 | File | Isi |
 |------|-----|
-| `output/hasil_klasterisasi.xlsx` | `dataset_siswa` + `Cluster` + `Kategori` + `Rekomendasi_DUDI` + `Jarak_DUDI` + (jika `topsis`) `Skor_TOPSIS` 0-1 + `Ranking_Top3` |
-| `output/profil_cluster.xlsx` | baris=cluster, mean tiap variabel + `Jumlah_Anggota` + `Rekomendasi_DUDI` + `Jarak_DUDI` + (jika `topsis`) `Skor_TOPSIS` + `Ranking_Top3` + `Gap_Terbesar` |
+| `output/hasil_klasterisasi.xlsx` | `dataset_siswa` + `Cluster` + `Kategori` + `Rekomendasi_DUDI` + `Jarak_DUDI` (mode default Euclidean; jika eksperimen `topsis` tambah `Skor_TOPSIS` + `Ranking_Top3`) |
+| `output/profil_cluster.xlsx` | baris=cluster, mean tiap variabel + `Jumlah_Anggota` + `Rekomendasi_DUDI` + `Jarak_DUDI` (jika eksperimen `topsis` tambah `Skor_TOPSIS` + `Ranking_Top3` + `Gap_Terbesar`) |
 | `output/laporan_noise.xlsx` | subset `hasil_klasterisasi` di mana `Cluster==-1`, plus alasan (opsional) |
 | `output/k_distance_graph.png` | line sorted k-distance + garis vertikal eps rekomendasi |
 | `output/hasil_cluster_plot.png` | scatter PCA/cluster |
@@ -251,9 +251,8 @@ pytest>=8
 python generate_dummy_data.py --n 40 --seed 42
 
 # 2. Jalankan pipeline penuh
-python main.py                          # default topsis (usulan, paling defensible)
-python main.py --matching euclidean     # baseline untuk perbandingan BAB 4
-python main.py --matching topsis --eps 2.5
+python main.py                          # default euclidean (resmi BAB 4)
+python main.py --matching topsis --eps 2.5  # eksperimen — warning, butuh persetujuan pembimbing (Lampiran C)
 # atau step-by-step:
 python -m src.data_loader
 python -m src.preprocessing
@@ -286,8 +285,8 @@ python generate_dummy_data.py --n 10 && python main.py && ls -lh output/
 |  | `test_dbscan_runner.py` | DBSCAN label shape, k-distance graph ter-generate, suggest_eps return float |
 |  | `test_validation.py` | silhouette exclude noise, return None jika <2 cluster, kappa skip jika Penilaian_Guru kosong |
 |  | `test_matching.py` | normalisasi 0–100→1–5 benar, euclidean ranking benar |
-|  | `test_matching_topsis.py` | TOPSIS skor 0-1, ranking Top-3, gap, equal-weight fallback |
-|  | `test_export.py` | 3 Excel + 2 PNG terbuat, kolom sesuai §8 (Skor_TOPSIS jika topsis) |
+|  | `test_matching_topsis.py` | TOPSIS eksperimen — skor 0-1, ranking Top-3, gap (bukan fitur resmi) |
+|  | `test_export.py` | 3 Excel + 2 PNG terbuat, kolom sesuai §8 (kolom Skor_TOPSIS hanya jika topsis eksperimen) |
 | **Integration** | `test_integration.py` | `generate_dummy_data(40) → main.py → semua output ada + tidak crash` |
 | **Edge** | di masing-masing | semua 1 cluster, semua noise, n=5 (min_samples > n), Penilaian_Guru kosong |
 
@@ -324,8 +323,8 @@ Tanpa ini, penguji/reviewer tidak bisa mereplikasi. Buat **sekarang**, bukan men
 |---|---------|--------|-------------|--------------|
 | 1 | **README.md** | root | Prasyarat, setup venv, `requirements.txt`, cara run berurutan (copy-pasteable), struktur output, cara ubah eps/min_samples/DUDI_WEIGHTS via `config.py`, FAQ error umum | **Sebelum coding** (skeleton dulu) |
 | 2 | **DATA_DICTIONARY.md** | `docs/` | Tabel §5.1–5.2 + contoh 3 baris dummy + penjelasan 10 variabel inti vs opsional | Bersama `generate_dummy_data.py` |
-| 3 | **ALGORITMA.md** | `docs/` | 1 hlm: kenapa DBSCAN (vs KMeans), StandardScaler, k-distance/elbow, silhouette, matching Euclidean vs TOPSIS berbobot + referensi (Hwang & Yoon 1981, Saaty 1980) | Saat implementasi `dbscan_runner.py` + `matching_topsis.py` |
-| 4 | **KAJIAN_PUSTAKA.md** | `docs/` | 6 penelitian terdahulu DBSCAN+TOPSIS/AHP untuk PKL/magang + tabel perbandingan + novelty | Untuk BAB 2 |
+| 3 | **ALGORITMA.md** | `docs/` | 1 hlm: kenapa DBSCAN (vs KMeans), StandardScaler, k-distance/elbow, silhouette, matching Euclidean (utama) vs TOPSIS berbobot eksperimen (Lampiran C) + referensi | Saat implementasi `dbscan_runner.py`; TOPSIS saat eksperimen |
+| 4 | **KAJIAN_PUSTAKA.md** | `docs/` | 6 penelitian terdahulu DBSCAN+TOPSIS/AHP untuk PKL/magang + tabel perbandingan + novelty — TOPSIS sebagai Future Work (Lampiran C) | Untuk BAB 2 |
 | 5 | **VALIDASI.md** | `docs/` | Cara baca silhouette (-1 s/d 1), interpretasi kappa, contoh tabel validasi kualitatif | Saat `validation.py` |
 | 6 | **Docstring tiap fungsi** | `src/*.py` | 2–3 baris: tujuan, params, return, raise — untuk lampiran source code skripsi | Wajib per fungsi |
 | 7 | **CHANGELOG.md** (opsional) | root | Tanggal, perubahan eps/dataset, hasil silhouette — jejak untuk BAB 4 | Tiap eksperimen |
@@ -351,16 +350,16 @@ Sistem dinyatakan **siap BAB 4** jika semua ini terpenuhi:
 
 - [ ] `pip install -r requirements.txt` berhasil di Python 3.10+ fresh venv
 - [ ] `python generate_dummy_data.py --n 40` menghasilkan `dataset_siswa.xlsx` valid (sesuai §5.1)
-- [ ] `python main.py` (topsis) menghasilkan 5 file §8 tanpa error; `python main.py --matching euclidean` juga jalan (untuk perbandingan)
+- [ ] `python main.py` (default euclidean) menghasilkan 5 file §8 tanpa error; `python main.py --matching topsis` tetap jalan tapi cetak warning eksperimen
 - [ ] `k_distance_graph.png` menampilkan kurva + garis eps rekomendasi
 - [ ] `hasil_cluster_plot.png` menampilkan cluster berwarna + noise terpisah
 - [ ] Silhouette tercetak (atau `N/A — hanya 1 cluster/noise` dengan warning, bukan crash)
-- [ ] `profil_cluster.xlsx` berisi mean per cluster + rekomendasi DUDI + Skor_TOPSIS + Ranking_Top3 + Gap_Terbesar (jika topsis)
+- [ ] `profil_cluster.xlsx` berisi mean per cluster + rekomendasi DUDI (euclidean: Jarak_DUDI; topsis eksperimen tambah Skor_TOPSIS + Ranking_Top3 + Gap_Terbesar)
 - [ ] `laporan_noise.xlsx` berisi daftar noise (boleh 0 baris, header tetap ada)
-- [ ] Validasi kualitatif mencetak `% kesesuaian` (dan kappa jika memungkinkan) — bandingkan euclidean vs topsis
-- [ ] `pytest -q` hijau (≥15 test: 7 unit + integration + edge cases, termasuk `test_matching_topsis.py`)
-- [ ] README.md + 4 docs di `docs/` ada dan akurat (ALGORITMA, DATA_DICTIONARY, VALIDASI, KAJIAN_PUSTAKA)
-- [ ] `config.py` menjadi satu-satunya tempat ubah eps/min_samples/FEATURE_COLS/DUDI_WEIGHTS
+- [ ] Validasi kualitatif mencetak `% kesesuaian` (dan kappa jika memungkinkan)
+- [ ] `pytest -q` hijau (≥15 test: 7 unit + integration + edge cases, termasuk `test_matching_topsis.py` eksperimen)
+- [ ] README.md + 4 docs di `docs/` ada dan akurat
+- [ ] `config.py` menjadi satu-satunya tempat ubah eps/min_samples/FEATURE_COLS (DUDI_WEIGHTS hanya eksperimen, lihat Lampiran C)
 - [ ] Tidak ada hardcode parameter di tengah fungsi
 
 ---
@@ -383,7 +382,7 @@ Sistem dinyatakan **siap BAB 4** jika semua ini terpenuhi:
 |------|-------------|------------|
 | **F1 — Skeleton & Data** | `config.py`, `generate_dummy_data.py`, `src/data_loader.py`, `docs/DATA_DICTIONARY.md`, `requirements.txt`, `.gitignore` | `pytest tests/test_data_loader.py` hijau |
 | **F2 — Pipeline Inti** | `preprocessing.py`, `dbscan_runner.py` (k-distance + DBSCAN), `visualization.py` | `k_distance_graph.png` + `hasil_cluster_plot.png` ter-generate |
-| **F3 — Validasi & Matching** | `validation.py`, `profiling.py`, `matching.py`, `matching_topsis.py` (AHP-TOPSIS usulan) | Silhouette + kappa tercetak, `profil_cluster.xlsx` benar (euclidean vs topsis) |
+| **F3 — Validasi & Matching** | `validation.py`, `profiling.py`, `matching.py` (Euclidean resmi) + `matching_topsis.py` (eksperimen, Lampiran C) | Silhouette + kappa tercetak, `profil_cluster.xlsx` benar (default euclidean) |
 | **F4 — Export & Orkestrasi** | `export.py`, `main.py`, `tests/test_integration.py` | `python main.py` → 5 file + `pytest -q` hijau |
 | **F5 — Dokumentasi Akhir** | `README.md`, `ALGORITMA.md`, `VALIDASI.md`, docstring lengkap | Orang baru bisa `clone → setup → dummy → run → test` tanpa tanya |
 
@@ -398,8 +397,8 @@ pip install -r requirements.txt
 
 # Generate & run
 python generate_dummy_data.py --n 40 --seed 42
-python main.py                          # topsis (usulan, default)
-python main.py --matching euclidean     # baseline
+python main.py                          # default euclidean (resmi BAB 4)
+python main.py --matching topsis        # eksperimen — warning, butuh Lampiran C
 
 # Test
 pytest -q
@@ -413,6 +412,18 @@ eog output/k_distance_graph.png
 # Ubah parameter
 # edit config.py: EPS, MIN_SAMPLES, FEATURE_COLS
 ```
+
+---
+
+## Lampiran C — Syarat Aktivasi TOPSIS+AHP (Eksperimen, Bukan Default)
+
+Mode `topsis` **tidak boleh dipakai sebagai hasil resmi BAB 4** kecuali ketiga syarat terpenuhi:
+
+1. **Persetujuan pembimbing** — revisi rumusan masalah/judul disetujui (judul saat ini hanya menyebut DBSCAN)
+2. **Pairwise matrix asli** — ada matriks perbandingan berpasangan 5×5 dari Waka Hubin (skala Saaty 1-9) terlampir
+3. **CR < 0.1 + bukti empiris** — Consistency Ratio dihitung dan < 0.1, serta tidak diklaim "naikkan akurasi 10-15%" sebelum diuji ke data asli (ganti jadi hipotesis: "TOPSIS berpotensi meningkatkan akurasi dibanding Euclidean — perlu diuji dengan data asli, belum ada bukti empiris")
+
+Jika syarat belum terpenuhi, gunakan **Euclidean (default)**. Kode `matching_topsis.py` tetap ada untuk eksperimen masa depan, tidak dihapus.
 
 ---
 

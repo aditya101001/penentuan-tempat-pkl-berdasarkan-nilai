@@ -25,6 +25,12 @@ def test_full_pipeline(tmp_path=Path(tempfile.mkdtemp())):
     # tapi config OUTPUT_DIR = "output" → akan di tmp_path/output
     # cek di cwd tmp_path
     assert r2.returncode == 0, r2.stderr + r2.stdout
-    # main.py di cwd tmp_path menulis ke tmp_path/output
-    # juga menulis ke root/output jika import path? cek tmp_path
-    assert (tmp_path / "output" / "hasil_klasterisasi.xlsx").exists() or (root / "output" / "hasil_klasterisasi.xlsx").exists()
+    # main.py tanpa flag harus default Euclidean (resmi), bukan TOPSIS
+    import pandas as pd
+    out_file = tmp_path / "output" / "hasil_klasterisasi.xlsx"
+    if not out_file.exists():
+        out_file = root / "output" / "hasil_klasterisasi.xlsx"
+    assert out_file.exists()
+    df = pd.read_excel(out_file)
+    assert "Skor_TOPSIS" not in df.columns, "Default harus Euclidean — Skor_TOPSIS hanya untuk mode topsis eksperimen"
+    assert "Cluster" in df.columns
