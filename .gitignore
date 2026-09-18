@@ -1,0 +1,12 @@
+output/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+dataset_siswa.xlsx
+dataset_dudi.xlsx
+*.log
